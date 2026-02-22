@@ -1,0 +1,47 @@
+# Build output
+build/
+Debug/
+Release/
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+
+# Object files
+*.o
+*.d
+
+# IDE settings (but keep project files for cloning)
+.settings/
+.launches/
+*.launch
+
+# Keil MDK
+*.uvoptx
+*.uvguix
+*.dep
+Listings/
+Objects/
+
+# IAR
+*.ewt
+*.ewd
+settings/
+*.dni
+*.wsdt
+
+# CLion / CMake
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+*.cmake
+Makefile
+
+# OpenOCD / debugging
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+desktop.ini
