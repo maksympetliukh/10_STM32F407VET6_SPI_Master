@@ -84,6 +84,12 @@ typedef struct{
 typedef struct{
 	SPI_REG_t *pSPIx;
 	SPI_CFG_t SPI_Configs;
+	uint8_t *pTxBuffer;
+	uint8_t *pRxBuffer;
+	uint32_t TxLen;
+	uint32_t RxLen;
+	uint8_t TxState;
+	uint8_t RxState;
 }SPI_Handle_t;
 
 void SPI_Init(SPI_Handle_t *pSPI_Handle);
@@ -98,6 +104,8 @@ void SPI_PeripheralControl(SPI_REG_t *pSPIx, uint8_t en_di_mode);
 void SPI_SSI_CFG(SPI_REG_t *pSPIx, uint8_t en_di_mode);
 uint8_t SPI_GetFlagStatus(SPI_REG_t *pSPIx, uint32_t flag);
 void SPI_SSOE_CFG(SPI_REG_t *pSPIx, uint8_t en_di_mode);
+uint8_t SPI_Transmit_IT(SPI_Handle_t *pSPI_Handle, uint8_t *pTxBuffer, uint32_t len);
+uint8_t SPI_Receive_IT(SPI_Handle_t *pSPI_Handle, uint8_t *pRxBuffer, uint32_t len);
 
 /*
  * SPI register flags
@@ -111,5 +119,12 @@ void SPI_SSOE_CFG(SPI_REG_t *pSPIx, uint8_t en_di_mode);
 #define SPI_MODF_FLAG    (1 << SPI_SR_MODF)
 #define SPI_OVR_FLAG     (1 << SPI_SR_OVR)
 #define SPI_FRE_FLAG     (1 << SPI_SR_FRE)
+
+/*
+ * SPI Application State macros
+ */
+#define SPI_READY      0
+#define SPI_BUSY_IN_RX 1
+#define SPI_BUSY_IN_TX 2
 
 #endif /* SPI_H_ */
