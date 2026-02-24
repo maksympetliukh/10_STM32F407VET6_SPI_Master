@@ -203,6 +203,7 @@ void SPI_SSI_CFG(SPI_REG_t *pSPIx, uint8_t en_di_mode){
 		pSPIx->CR1 &= ~(1 << SPI_CR1_SSI);
 	}
 }
+
 /*****************************************************
  * @fn            - SPI_Data_Transmit
  *
@@ -230,7 +231,6 @@ void SPI_Data_Transmit(SPI_REG_t *pSPIx, uint8_t *pTX_buffer, uint32_t len){
 			//2 times because we took 2 bites (16 bits) of data
 			len -= 2;
 
-
 			//Increment the data pointer
 			pTX_buffer += 2;
 
@@ -240,50 +240,51 @@ void SPI_Data_Transmit(SPI_REG_t *pSPIx, uint8_t *pTX_buffer, uint32_t len){
 			//Load the data into the DR
 			pSPIx->DR = *pTX_buffer;
 
-			len --;
+			len--;
 
 			pTX_buffer++;
 		}
-
 	}
 }
 
 /*****************************************************
- * @fn            - GPIO_Init
+ * @fn            - SPI_Data_Receive
  *
- * @brief         - This function initializes the GPIO port and pin according to the specified settings in the handle structure.
+ * @brief         - This function receives data from the Data Register
  *
- * @param[in]     - pointer to the GPIO handle structure which contains base address and configuration settings.
+ * @param[in]     - Pointer to the base addresses of the SPI's port registers.
+ * @param[in]     - Pointer to the buffer where received data will be stored.
+ * @param[in]     - Length of the data that we want to receive.
  *
  * @return        - none
  *
- * * @note        - none
+ * * @note        - This is a blocking call
  */
 void SPI_Data_Receive(SPI_REG_t *pSPIx, uint8_t *pRX_buffer, uint32_t len){
 	while(len > 0){
+		while(SPI_GetFlagStatus(pSPIx, SPI_RXNE_FLAG) == FLAG_RESET);
 
-		        while(SPI_GetFlagStatus(pSPIx, SPI_RXNE_FLAG) == FLAG_RESET);
+		if(pSPIx->CR1 & (1 << SPI_CR1_DFF)){
+			*((uint16_t*)pRX_buffer) = pSPIx->DR;
 
-		        if(pSPIx->CR1 & (1 << SPI_CR1_DFF)){
-		            *((uint16_t*)pRX_buffer) = pSPIx->DR;
+			pRX_buffer += 2;
+			len -= 2;
+		}else{
+			*pRX_buffer = pSPIx->DR;
 
-		            pRX_buffer += 2;
-		            len -= 2;
-		        }else{
-		            *pRX_buffer = pSPIx->DR;
-
-		            pRX_buffer++;
-		            len--;
-		        }
-		    }
+			pRX_buffer++;
+			len--;
+		}
+	}
 }
 
 /*****************************************************
- * @fn            - GPIO_Init
+ * @fn            - SPI_IRQ_Interrupt_CFG
  *
- * @brief         - This function initializes the GPIO port and pin according to the specified settings in the handle structure.
+ * @brief         - This function configures the IRQ interrupt
  *
- * @param[in]     - pointer to the GPIO handle structure which contains base address and configuration settings.
+ * @param[in]     - IRQ number
+ * @param[in]     - Enable/Disable mode variable
  *
  * @return        - none
  *
@@ -291,46 +292,39 @@ void SPI_Data_Receive(SPI_REG_t *pSPIx, uint8_t *pRX_buffer, uint32_t len){
  */
 void SPI_IRQ_Interrupt_CFG(uint8_t IRQ_Number, uint8_t en_di_mode){
 	if(en_di_mode == ENABLE){
-			if(IRQ_Number <= 31){
-				//program the ISER0 register
-				*NVIC_ISER0 |= (1 << IRQ_Number);
-
-			}else if(IRQ_Number > 31 && IRQ_Number < 64){
-				//program the ISER1 register
-				*NVIC_ISER1 |= (1 << (IRQ_Number % 32));
-
-			}else if(IRQ_Number > 64 && IRQ_Number < 96){
-				//program the ISER2 register
-				*NVIC_ISER2 |= (1 << (IRQ_Number % 64));
-			}
-		}else{
-			if(IRQ_Number <= 31){
-				//program the ICER0 register
-				*NVIC_ICER0 |= (1 << IRQ_Number);
-			}else if(IRQ_Number > 31 && IRQ_Number < 64){
-				//program the ICER1 register
-				*NVIC_ICER1 |= (1 << (IRQ_Number % 32));
-			}else if(IRQ_Number > 64 && IRQ_Number < 96){
-				//program the ICER2 register
-				*NVIC_ICER2 |= (1 << (IRQ_Number % 64));
-			}
+		if(IRQ_Number <= 31){
+			*NVIC_ISER0 |= (1 << IRQ_Number);
+		}else if(IRQ_Number > 31 && IRQ_Number < 64){
+			*NVIC_ISER1 |= (1 << (IRQ_Number % 32));
+		}else if(IRQ_Number > 64 && IRQ_Number < 96){
+			*NVIC_ISER2 |= (1 << (IRQ_Number % 64));
 		}
+	}else{
+		if(IRQ_Number <= 31){
+			*NVIC_ICER0 |= (1 << IRQ_Number);
+		}else if(IRQ_Number > 31 && IRQ_Number < 64){
+			*NVIC_ICER1 |= (1 << (IRQ_Number % 32));
+		}else if(IRQ_Number > 64 && IRQ_Number < 96){
+			*NVIC_ICER2 |= (1 << (IRQ_Number % 64));
+		}
+	}
 }
 
 /*****************************************************
- * @fn            - GPIO_Init
+ * @fn            - SPI_IRQ_Priority_CFG
  *
- * @brief         - This function initializes the GPIO port and pin according to the specified settings in the handle structure.
+ * @brief         - This function configures the IRQ priority
  *
- * @param[in]     - pointer to the GPIO handle structure which contains base address and configuration settings.
+ * @param[in]     - IRQ number
+ * @param[in]     - IRQ priority
  *
  * @return        - none
  *
  * * @note        - none
  */
 void SPI_IRQ_Priority_CFG(uint8_t IRQ_Number, uint8_t IRQ_Priority){
-	if(IRQ_Priority > 15)IRQ_Priority = 15;
-	//Find out the IPR register
+	if(IRQ_Priority > 15) IRQ_Priority = 15;
+
 	uint8_t reg_index = IRQ_Number / 4;
 	uint8_t offset = IRQ_Number % 4;
 	uint8_t shift_amount = (8 * offset) + (8 - PRIOR_BITS_IMPLEMENTED);
@@ -339,19 +333,114 @@ void SPI_IRQ_Priority_CFG(uint8_t IRQ_Number, uint8_t IRQ_Priority){
 	*(NVIC_IRQ_PRIOR_BASE + (reg_index * 4)) |= (IRQ_Priority << shift_amount);
 }
 
+//Some helper functions for SPI IRQ Handler
+__weak void  SPI_ApplicationEventCallback(SPI_Handle_t *pHandle, uint8_t event_flag){
+
+}
+
+void SPI_CloseTransmission(SPI_Handle_t *pHandle){
+	pHandle->pSPIx->CR2 &= ~(1 << SPI_CR2_TXEIE);
+	pHandle->pTxBuffer = NULL;
+	pHandle->TxLen = 0;
+	pHandle->TxState = SPI_READY;
+}
+
+void SPI_CloseReception(SPI_Handle_t *pHandle){
+	pHandle->pSPIx->CR2 &= ~(1 << SPI_CR2_RXNEIE);
+	pHandle->pRxBuffer = NULL;
+	pHandle->RxLen = 0;
+	pHandle->RxState = SPI_READY;
+}
+
+void SPI_ClearOVRFlag(SPI_REG_t *pSPIx){
+	uint8_t tmp;
+
+	tmp = pSPIx->DR;
+	tmp = pSPIx->SR;
+
+	(void)tmp;
+}
+
+
+void spi_txe_interrupt_handle(SPI_Handle_t *pHandle){
+	if(pHandle->pSPIx->CR1 & (1 << SPI_CR1_DFF)){
+		//16 bit DFF
+		pHandle->pSPIx->DR = *((uint16_t*)pHandle->pTxBuffer);
+		pHandle->TxLen -= 2;
+		pHandle->pTxBuffer += 2;
+	}else{
+		//8 bit DFF
+		pHandle->pSPIx->DR = *pHandle->pTxBuffer;
+		pHandle->TxLen--;
+		pHandle->pTxBuffer++;
+	}
+
+	if(!pHandle->TxLen){
+		SPI_CloseTransmission(pHandle);
+		SPI_ApplicationEventCallback(pHandle, SPI_EVENT_TX_CMPLT);
+	}
+}
+
+void spi_rxne_interrupt_handle(SPI_Handle_t *pHandle){
+	if(pHandle->pSPIx->CR1 & (1 << SPI_CR1_DFF)){
+		*((uint16_t*)pHandle->pRxBuffer) = pHandle->pSPIx->DR;
+		pHandle->pRxBuffer += 2;
+		pHandle->RxLen -= 2;
+	}else{
+		*pHandle->pRxBuffer = pHandle->pSPIx->DR;
+		pHandle->pRxBuffer++;
+		pHandle->RxLen--;
+	}
+
+	if(!pHandle->RxLen){
+		SPI_CloseReception(pHandle);
+		SPI_ApplicationEventCallback(pHandle, SPI_EVENT_RX_CMPLT);
+	}
+}
+
+void spi_ovr_interrupt_handle(SPI_Handle_t *pHandle){
+	SPI_ClearOVRFlag(pHandle->pSPIx);
+	SPI_ApplicationEventCallback(pHandle, SPI_EVENT_OVR_ERR);
+}
+
+
 /*****************************************************
- * @fn            - GPIO_Init
+ * @fn            - SPI_IRQ_Handler
  *
- * @brief         - This function initializes the GPIO port and pin according to the specified settings in the handle structure.
+ * @brief         - This function handles the SPI IRQ
  *
- * @param[in]     - pointer to the GPIO handle structure which contains base address and configuration settings.
+ * @param[in]     - pointer to the SPI handle structure
  *
  * @return        - none
  *
  * * @note        - none
  */
 void SPI_IRQ_Handler(SPI_Handle_t *pHandle){
+	uint8_t tmp1, tmp2;
 
+	//Check for TXE
+	tmp1 = pHandle->pSPIx->SR & (1 << SPI_SR_TXE);
+	tmp2 = pHandle->pSPIx->CR2 & (1 << SPI_CR2_TXEIE);
+
+	if(tmp1 && tmp2){
+		spi_txe_interrupt_handle(pHandle);
+	}
+
+	//Check for RXNE
+	tmp1 = pHandle->pSPIx->SR & (1 << SPI_SR_RXNE);
+	tmp2 = pHandle->pSPIx->CR2 & (1 << SPI_CR2_RXNEIE);
+
+	if(tmp1 && tmp2){
+		spi_rxne_interrupt_handle(pHandle);
+	}
+
+	//Check for OVR
+	tmp1 = pHandle->pSPIx->SR & (1 << SPI_SR_OVR);
+	tmp2 = pHandle->pSPIx->CR2 & (1 << SPI_CR2_ERRIE);
+
+	if(tmp1 && tmp2){
+		spi_ovr_interrupt_handle(pHandle);
+	}
 }
 
 uint8_t SPI_Transmit_IT(SPI_Handle_t *pSPI_Handle, uint8_t *pTxBuffer, uint32_t len){
@@ -359,16 +448,10 @@ uint8_t SPI_Transmit_IT(SPI_Handle_t *pSPI_Handle, uint8_t *pTxBuffer, uint32_t 
 	uint8_t state = pSPI_Handle->TxState;
 
 	if(state != SPI_BUSY_IN_TX){
-	//Save the TX buffer address and length in some variables
-	pSPI_Handle->pTxBuffer = pTxBuffer;
-	pSPI_Handle->TxLen = len;
-
-	//Mark the SPI state as busy in transmission (no other code can take over same SPI peripheral until transmission is over
-	pSPI_Handle->TxState = SPI_BUSY_IN_TX;
-
-	//Enable the TXEIE control bit to get interrupt whenever TXE flag is set in SR
-	pSPI_Handle->pSPIx->CR2 |= (1 << SPI_CR2_TXEIE);
-
+		pSPI_Handle->pTxBuffer = pTxBuffer;
+		pSPI_Handle->TxLen = len;
+		pSPI_Handle->TxState = SPI_BUSY_IN_TX;
+		pSPI_Handle->pSPIx->CR2 |= (1 << SPI_CR2_TXEIE);
 	}
 
 	return state;
@@ -379,16 +462,10 @@ uint8_t SPI_Receive_IT(SPI_Handle_t *pSPI_Handle, uint8_t *pRxBuffer, uint32_t l
 	uint8_t state = pSPI_Handle->RxState;
 
 	if(state != SPI_BUSY_IN_RX){
-	//Save the RX buffer address and length in some variables
-	pSPI_Handle->pRxBuffer = pRxBuffer;
-	pSPI_Handle->RxLen = len;
-
-	//Mark the SPI state as busy in Receiving (no other code can take over same SPI peripheral until transmission is over
-	pSPI_Handle->RxState = SPI_BUSY_IN_RX;
-
-	//Enable the RXNEIE control bit to get interrupt whenever RXNE flag is set in SR
-	pSPI_Handle->pSPIx->CR2 |= (1 << SPI_CR2_RXNEIE);
-
+		pSPI_Handle->pRxBuffer = pRxBuffer;
+		pSPI_Handle->RxLen = len;
+		pSPI_Handle->RxState = SPI_BUSY_IN_RX;
+		pSPI_Handle->pSPIx->CR2 |= (1 << SPI_CR2_RXNEIE);
 	}
 
 	return state;

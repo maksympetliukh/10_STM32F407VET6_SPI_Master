@@ -106,6 +106,13 @@ uint8_t SPI_GetFlagStatus(SPI_REG_t *pSPIx, uint32_t flag);
 void SPI_SSOE_CFG(SPI_REG_t *pSPIx, uint8_t en_di_mode);
 uint8_t SPI_Transmit_IT(SPI_Handle_t *pSPI_Handle, uint8_t *pTxBuffer, uint32_t len);
 uint8_t SPI_Receive_IT(SPI_Handle_t *pSPI_Handle, uint8_t *pRxBuffer, uint32_t len);
+void spi_txe_interrupt_handle(SPI_Handle_t *pHandle);
+void spi_rxne_interrupt_handle(SPI_Handle_t *pHandle);
+void spi_ovr_interrupt_handle(SPI_Handle_t *pHandle);
+void SPI_ApplicationEventCallback(SPI_Handle_t *pHhandle, uint8_t event_flag);
+void SPI_ClearOVRFlag(SPI_REG_t *pSPIx);
+void SPI_CloseTransmission(SPI_Handle_t *pHandle);
+void SPI_CloseReception(SPI_Handle_t *pHandle);
 
 /*
  * SPI register flags
@@ -126,5 +133,13 @@ uint8_t SPI_Receive_IT(SPI_Handle_t *pSPI_Handle, uint8_t *pRxBuffer, uint32_t l
 #define SPI_READY      0
 #define SPI_BUSY_IN_RX 1
 #define SPI_BUSY_IN_TX 2
+
+/*
+ * SPI possible events
+ */
+#define SPI_EVENT_TX_CMPLT  1
+#define SPI_EVENT_RX_CMPLT  2
+#define SPI_EVENT_OVR_ERR   3
+#define SPI_EVENT_CRC_ERR   4
 
 #endif /* SPI_H_ */
