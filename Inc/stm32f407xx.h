@@ -149,6 +149,13 @@
 #define NVIC_IPR59  ((volatile uint32_t*)0xE000E4EC)
 
 /*
+ * SPI IRQ Numbers
+ */
+#define IRQ_NO_SPI1   35
+#define IRQ_NO_SPI2   36
+#define IRQ_NO_SPI3   51
+
+/*
  * ARM Cortex-M4 processor STIR register address
  */
 #define NVIC_STIR   ((volatile uint32_t*)0xE000EF00) /*Software Trigger Interrupt Register*/
